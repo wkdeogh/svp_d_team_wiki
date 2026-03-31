@@ -93,6 +93,16 @@ create table if not exists public.reports (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.content_comments (
+  id uuid primary key default gen_random_uuid(),
+  target_type text not null,
+  target_id uuid not null,
+  author_id uuid null,
+  author_name text not null,
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
 alter table public.guestbook_entries enable row level security;
 alter table public.timeline_entries enable row level security;
 alter table public.photo_albums enable row level security;
@@ -100,6 +110,7 @@ alter table public.photos enable row level security;
 alter table public.members enable row level security;
 alter table public.reactions enable row level security;
 alter table public.reports enable row level security;
+alter table public.content_comments enable row level security;
 alter table public.user_accounts enable row level security;
 alter table public.user_sessions enable row level security;
 
@@ -174,6 +185,16 @@ create policy "public read reports" on public.reports for select using (true);
 create policy "public insert reports" on public.reports for insert with check (length(trim(target_type)) > 0 and length(trim(reason)) > 0);
 create policy "authenticated update reports" on public.reports for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+drop policy if exists "public read comments" on public.content_comments;
+drop policy if exists "public insert comments" on public.content_comments;
+
+create policy "public read comments" on public.content_comments for select using (true);
+create policy "public insert comments" on public.content_comments for insert with check (
+  length(trim(target_type)) > 0 and
+  length(trim(author_name)) > 0 and
+  length(trim(content)) > 0
+);
+
 drop policy if exists "deny all user accounts" on public.user_accounts;
 drop policy if exists "deny all user sessions" on public.user_sessions;
 
@@ -185,6 +206,7 @@ create index if not exists timeline_entries_event_date_idx on public.timeline_en
 create index if not exists photos_event_date_idx on public.photos (event_date desc);
 create index if not exists reactions_target_idx on public.reactions (target_type, target_id);
 create index if not exists reports_target_idx on public.reports (target_type, target_id);
+create index if not exists content_comments_target_idx on public.content_comments (target_type, target_id, created_at asc);
 create unique index if not exists user_accounts_nickname_idx on public.user_accounts (nickname);
 create unique index if not exists user_sessions_token_hash_idx on public.user_sessions (token_hash);
 

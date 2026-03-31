@@ -1,7 +1,8 @@
 'use client';
 
+import { CommentThread } from "@/components/CommentThread";
 import { useEffect, useState } from "react";
-import { fallbackPhotos } from "@/lib/mockData";
+import { fallbackComments, fallbackPhotos } from "@/lib/mockData";
 import { useViewer } from "@/lib/useViewer";
 import { formatDate, sortByDate } from "@/lib/utils";
 
@@ -16,6 +17,8 @@ export function PhotoArchive() {
   const [error, setError] = useState("");
   const [busyKey, setBusyKey] = useState("");
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [commentsByPhoto, setCommentsByPhoto] = useState({});
+  const [commentSubmittingId, setCommentSubmittingId] = useState("");
 
   function canDeleteItem(item) {
     if (viewer.isAdmin) return true;
@@ -32,15 +35,32 @@ export function PhotoArchive() {
       if (!client) {
         if (active) {
           setPhotos(sortByDate(fallbackPhotos, "event_date", false));
+          const fallbackGrouped = fallbackComments
+            .filter((comment) => comment.target_type === "photo")
+            .reduce((acc, comment) => {
+              if (!acc[comment.target_id]) acc[comment.target_id] = [];
+              acc[comment.target_id].push(comment);
+              return acc;
+            }, {});
+          setCommentsByPhoto(fallbackGrouped);
           setLoading(false);
         }
         return;
       }
 
-      const { data: photoRows } = await client.from("photos").select("*").order("event_date", { ascending: false });
+      const [{ data: photoRows }, { data: commentRows }] = await Promise.all([
+        client.from("photos").select("*").order("event_date", { ascending: false }),
+        client.from("content_comments").select("*").eq("target_type", "photo").order("created_at", { ascending: true }),
+      ]);
 
       if (active) {
         setPhotos(photoRows ?? []);
+        const nextComments = (commentRows ?? []).reduce((acc, comment) => {
+          if (!acc[comment.target_id]) acc[comment.target_id] = [];
+          acc[comment.target_id].push(comment);
+          return acc;
+        }, {});
+        setCommentsByPhoto(nextComments);
         setLoading(false);
       }
     }
@@ -157,6 +177,46 @@ export function PhotoArchive() {
     }
   }
 
+  async function addComment(photoId, content) {
+    if (!client) return;
+    if (!viewer.user) {
+      setError("로그인 후에 댓글을 남길 수 있어요.");
+      return;
+    }
+
+    setCommentSubmittingId(photoId);
+    setError("");
+
+    try {
+      const { data, error: commentError } = await client
+        .from("content_comments")
+        .insert([
+          {
+            target_type: "photo",
+            target_id: photoId,
+            author_id: viewer.user.id,
+            author_name: viewer.user.nickname,
+            content,
+          },
+        ])
+        .select("*")
+        .single();
+
+      if (commentError) throw commentError;
+
+      if (data) {
+        setCommentsByPhoto((current) => ({
+          ...current,
+          [photoId]: [...(current[photoId] ?? []), data],
+        }));
+      }
+    } catch (commentSubmitError) {
+      setError(commentSubmitError.message || "댓글 등록에 실패했습니다.");
+    } finally {
+      setCommentSubmittingId("");
+    }
+  }
+
   return (
     <section className="section-card">
       <div className="section-head">
@@ -217,6 +277,13 @@ export function PhotoArchive() {
                 </button>
               ) : null}
             </div>
+            <div className="divider" />
+            <CommentThread
+              comments={commentsByPhoto[photo.id] ?? []}
+              onSubmit={(content) => addComment(photo.id, content)}
+              submitting={commentSubmittingId === photo.id}
+              disabled={!viewer.user}
+            />
           </article>
         ))}
       </div>
@@ -239,6 +306,12 @@ export function PhotoArchive() {
               <img className="photo-modal-image" src={selectedPhoto.image_url} alt={selectedPhoto.title} />
             </div>
             {selectedPhoto.caption ? <p className="photo-caption">{selectedPhoto.caption}</p> : null}
+            <CommentThread
+              comments={commentsByPhoto[selectedPhoto.id] ?? []}
+              onSubmit={(content) => addComment(selectedPhoto.id, content)}
+              submitting={commentSubmittingId === selectedPhoto.id}
+              disabled={!viewer.user}
+            />
           </div>
         </div>
       ) : null}

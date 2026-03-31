@@ -40,6 +40,8 @@ export function CrudSection({
   reportTargetType,
   ownerField,
   targetType,
+  commentsTargetType,
+  fallbackComments = [],
 }) {
   const fallbackClient = useMemo(() => getBrowserSupabase(), []);
   const viewer = useViewer();
@@ -54,6 +56,8 @@ export function CrudSection({
   const [files, setFiles] = useState({});
   const [anonKey, setAnonKey] = useState("server");
   const [deletingId, setDeletingId] = useState("");
+  const [commentsByTarget, setCommentsByTarget] = useState({});
+  const [commentSubmittingId, setCommentSubmittingId] = useState("");
 
   useEffect(() => {
     setForm(getInitialForm(fields));
@@ -107,6 +111,34 @@ export function CrudSection({
         }
       }
 
+      if (commentsTargetType) {
+        const { data: commentRows, error: commentError } = await client
+          .from("content_comments")
+          .select("*")
+          .eq("target_type", commentsTargetType)
+          .order("created_at", { ascending: true });
+
+        if (active) {
+          if (commentError) {
+            const fallbackGrouped = fallbackComments
+              .filter((comment) => comment.target_type === commentsTargetType)
+              .reduce((acc, comment) => {
+                if (!acc[comment.target_id]) acc[comment.target_id] = [];
+                acc[comment.target_id].push(comment);
+                return acc;
+              }, {});
+            setCommentsByTarget(fallbackGrouped);
+          } else {
+            const nextComments = (commentRows ?? []).reduce((acc, comment) => {
+              if (!acc[comment.target_id]) acc[comment.target_id] = [];
+              acc[comment.target_id].push(comment);
+              return acc;
+            }, {});
+            setCommentsByTarget(nextComments);
+          }
+        }
+      }
+
       setLoading(false);
     }
 
@@ -115,7 +147,7 @@ export function CrudSection({
     return () => {
       active = false;
     };
-  }, [client, table, select, orderBy, ascending, fallbackItems, reactionTargetType]);
+  }, [client, table, select, orderBy, ascending, fallbackItems, reactionTargetType, commentsTargetType, fallbackComments]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -263,6 +295,46 @@ export function CrudSection({
     }
   }
 
+  async function handleCommentSubmit(item, content) {
+    if (!client || !commentsTargetType) return;
+    if (!viewer.user) {
+      setError("로그인 후에 댓글을 남길 수 있어요.");
+      return;
+    }
+
+    setCommentSubmittingId(item.id);
+    setError("");
+
+    try {
+      const { data, error: commentError } = await client
+        .from("content_comments")
+        .insert([
+          {
+            target_type: commentsTargetType,
+            target_id: item.id,
+            author_id: viewer.user.id,
+            author_name: viewer.user.nickname,
+            content,
+          },
+        ])
+        .select("*")
+        .single();
+
+      if (commentError) throw commentError;
+
+      if (data) {
+        setCommentsByTarget((current) => ({
+          ...current,
+          [item.id]: [...(current[item.id] ?? []), data],
+        }));
+      }
+    } catch (commentSubmitError) {
+      setError(commentSubmitError.message || "댓글 등록에 실패했습니다.");
+    } finally {
+      setCommentSubmittingId("");
+    }
+  }
+
   const hasFields = fields.length > 0;
 
   return (
@@ -378,8 +450,12 @@ export function CrudSection({
                   onReact: () => handleReact(item),
                   onReport: () => handleReport(item),
                   onDelete: () => handleDelete(item),
+                  onCommentSubmit: (content) => handleCommentSubmit(item, content),
                   canDelete: canDeleteItem(item),
                   deleting: deletingId === item.id,
+                  comments: commentsByTarget[item.id] ?? [],
+                  commentSubmitting: commentSubmittingId === item.id,
+                  viewerUser: viewer.user,
                   reactionCount: counts[item.id] ?? 0,
                 })}
               </div>

@@ -1,7 +1,8 @@
 "use client";
 
+import { CommentThread } from "@/components/CommentThread";
 import { CrudSection } from "@/components/CrudSection";
-import { fallbackGuestbookEntries } from "@/lib/mockData";
+import { fallbackComments, fallbackGuestbookEntries } from "@/lib/mockData";
 
 export default function GuestbookPage() {
   return (
@@ -19,6 +20,8 @@ export default function GuestbookPage() {
       reportTargetType="guestbook"
       ownerField="author_id"
       targetType="guestbook"
+      commentsTargetType="guestbook"
+      fallbackComments={fallbackComments}
       fields={[
         { name: "message", label: "내용", type: "textarea", required: true, placeholder: "짧게 한마디 남겨주세요" },
       ]}
@@ -50,6 +53,8 @@ export default function GuestbookPage() {
               </button>
             ) : null}
           </div>
+          <div className="divider" />
+          <CommentThread comments={helpers.comments} onSubmit={helpers.onCommentSubmit} submitting={helpers.commentSubmitting} disabled={!helpers.viewerUser} />
         </article>
       )}
     />
