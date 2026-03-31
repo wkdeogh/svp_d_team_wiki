@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server";
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionValue } from "@/lib/adminSession";
+import { deleteTargetContent, targetTableMap } from "@/lib/contentModeration";
 import { getAdminSupabase } from "@/lib/supabaseAdmin";
-import { deleteTargetContent } from "@/app/api/admin/content/route";
-
-const targetTableMap = {
-  guestbook: "guestbook_entries",
-  timeline: "timeline_entries",
-  photo: "photos",
-  member: "members",
-  album: "photo_albums",
-};
 
 export async function PATCH(request, { params }) {
   const sessionValue = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;

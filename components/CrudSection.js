@@ -124,6 +124,10 @@ export function CrudSection({
     setSubmitting(true);
 
     try {
+      if (ownerField && !viewer.user) {
+        throw new Error("로그인 후에 작성할 수 있어요.");
+      }
+
       let payload = { ...form };
 
       for (const field of fields) {
@@ -230,29 +234,24 @@ export function CrudSection({
   }
 
   async function handleDelete(item) {
-    if (!client || !targetType) return;
+    if (!targetType) return;
 
     setDeletingId(item.id);
     setError("");
     setNotice("");
 
     try {
-      if (viewer.isAdmin) {
-        const response = await fetch("/api/admin/content", {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ targetType, targetId: item.id }),
-        });
+      const response = await fetch("/api/content/delete", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ targetType, targetId: item.id }),
+      });
 
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || "삭제에 실패했습니다.");
-        }
-      } else {
-        const { error: deleteError } = await client.from(table).delete().eq("id", item.id);
-        if (deleteError) throw deleteError;
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "삭제에 실패했습니다.");
       }
 
       setItems((current) => current.filter((entry) => entry.id !== item.id));
@@ -278,7 +277,7 @@ export function CrudSection({
         <div className="toolbar">
           <span className="tag">{loading ? "불러오는 중" : `${items.length}개 항목`}</span>
           {reactionTargetType ? <span className="tag">공감 기능</span> : null}
-          {ownerField ? <span className="tag">Google 로그인 시 내 글 삭제</span> : null}
+          {ownerField ? <span className="tag">로그인 시 내 글 삭제</span> : null}
         </div>
       </div>
 

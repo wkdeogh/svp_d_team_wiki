@@ -1,33 +1,53 @@
 'use client';
 
 import { useState } from "react";
-import { useViewer } from "@/lib/useViewer";
+import { emitViewerChanged, useViewer } from "@/lib/useViewer";
 
 export function AuthControls() {
-  const { client, user, loading } = useViewer();
+  const { user, loading } = useViewer();
   const [submitting, setSubmitting] = useState(false);
-  const avatarUrl = user?.user_metadata?.avatar_url;
-  const displayName = user?.user_metadata?.name || user?.email || "Google 사용자";
+  const [nickname, setNickname] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const displayName = user?.nickname || "로그인 사용자";
 
-  async function signInWithGoogle() {
-    if (!client) return;
+  async function signIn() {
+    if (!nickname.trim() || !password.trim()) return;
     setSubmitting(true);
+    setError("");
 
-    await client.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.href,
-      },
-    });
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ nickname, password }),
+      });
 
-    setSubmitting(false);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "로그인에 실패했습니다.");
+      }
+
+      setPassword("");
+      emitViewerChanged();
+    } catch (loginError) {
+      setError(loginError.message || "로그인에 실패했습니다.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function signOut() {
-    if (!client) return;
     setSubmitting(true);
-    await client.auth.signOut();
-    setSubmitting(false);
+
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      emitViewerChanged();
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -35,18 +55,36 @@ export function AuthControls() {
       {loading ? <span className="auth-meta">로그인 확인 중...</span> : null}
 
       {!loading && !user ? (
-        <button className="secondary auth-button" type="button" onClick={signInWithGoogle} disabled={submitting || !client}>
-          Google 로그인
-        </button>
+        <div className="auth-login-box">
+          <input
+            className="auth-input"
+            type="text"
+            value={nickname}
+            onChange={(event) => setNickname(event.target.value)}
+            placeholder="닉네임"
+          />
+          <input
+            className="auth-input"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="비밀번호"
+          />
+          <button className="secondary auth-button" type="button" onClick={signIn} disabled={submitting || !nickname.trim() || !password.trim()}>
+            {submitting ? "확인 중..." : "로그인"}
+          </button>
+          <span className="auth-meta">처음이면 자동 가입</span>
+          {error ? <span className="auth-error">{error}</span> : null}
+        </div>
       ) : null}
 
       {!loading && user ? (
         <>
           <div className="auth-user-chip">
-            {avatarUrl ? <img className="auth-avatar" src={avatarUrl} alt={displayName} /> : <div className="auth-avatar auth-avatar-fallback">G</div>}
+            <div className="auth-avatar auth-avatar-fallback">{displayName.slice(0, 1)}</div>
             <div className="auth-user-copy">
               <span className="auth-user-name">{displayName}</span>
-              <span className="auth-meta">내 글 삭제 가능</span>
+              <span className="auth-meta">자동 로그인 유지</span>
             </div>
           </div>
           <button className="secondary auth-button" type="button" onClick={signOut} disabled={submitting}>

@@ -61,6 +61,11 @@ export function PhotoArchive() {
     setError("");
     setMessage("");
 
+    if (!viewer.user) {
+      setError("로그인 후에 앨범을 추가할 수 있어요.");
+      return;
+    }
+
     if (!albumForm.title.trim()) return;
 
     if (!client) {
@@ -94,6 +99,11 @@ export function PhotoArchive() {
     event.preventDefault();
     setError("");
     setMessage("");
+
+    if (!viewer.user) {
+      setError("로그인 후에 사진을 올릴 수 있어요.");
+      return;
+    }
 
     if (!photoForm.album_id || !photoForm.title.trim()) return;
 
@@ -151,22 +161,17 @@ export function PhotoArchive() {
     setMessage("");
 
     try {
-      if (viewer.isAdmin) {
-        const response = await fetch("/api/admin/content", {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ targetType, targetId }),
-        });
+      const response = await fetch("/api/content/delete", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ targetType, targetId }),
+      });
 
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || "삭제에 실패했습니다.");
-        }
-      } else {
-        const { error: deleteError } = await client.from(table).delete().eq("id", targetId);
-        if (deleteError) throw deleteError;
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "삭제에 실패했습니다.");
       }
 
       if (table === "photo_albums") {
@@ -211,7 +216,7 @@ export function PhotoArchive() {
           <h2 className="section-title" style={{ fontSize: 26 }}>
             사진 아카이브
           </h2>
-          <p className="section-description">앨범과 사진을 함께 보관하는 공간입니다. Google 로그인 후 올린 사진과 앨범은 직접 삭제할 수 있어요.</p>
+          <p className="section-description">앨범과 사진을 함께 보관하는 공간입니다. 로그인 후 올린 사진과 앨범은 직접 삭제할 수 있어요.</p>
         </div>
         <span className="tag">{loading ? "불러오는 중" : `${photos.length}장`}</span>
       </div>

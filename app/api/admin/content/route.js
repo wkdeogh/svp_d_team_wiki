@@ -1,32 +1,7 @@
 import { NextResponse } from "next/server";
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionValue } from "@/lib/adminSession";
+import { deleteTargetContent } from "@/lib/contentModeration";
 import { getAdminSupabase } from "@/lib/supabaseAdmin";
-
-const targetTableMap = {
-  guestbook: "guestbook_entries",
-  timeline: "timeline_entries",
-  photo: "photos",
-  member: "members",
-  album: "photo_albums",
-};
-
-async function deleteTargetContent(supabase, targetType, targetId) {
-  const table = targetTableMap[targetType];
-
-  if (!table) {
-    throw new Error("삭제할 대상 타입이 올바르지 않습니다.");
-  }
-
-  const [{ error: deleteTargetError }, { error: deleteReactionError }, { error: deleteReportError }] = await Promise.all([
-    supabase.from(table).delete().eq("id", targetId),
-    supabase.from("reactions").delete().eq("target_type", targetType).eq("target_id", targetId),
-    supabase.from("reports").delete().eq("target_type", targetType).eq("target_id", targetId),
-  ]);
-
-  if (deleteTargetError || deleteReactionError || deleteReportError) {
-    throw deleteTargetError || deleteReactionError || deleteReportError;
-  }
-}
 
 export async function DELETE(request) {
   const sessionValue = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
@@ -50,5 +25,3 @@ export async function DELETE(request) {
     return NextResponse.json({ error: error.message || "삭제에 실패했습니다." }, { status: 500 });
   }
 }
-
-export { deleteTargetContent };
