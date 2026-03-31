@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import homeImage from "../home_image.png";
+import homeImage from "../home_image.jpeg";
 
 const heroTags = ["결혼", "행사", "회식", "여행", "사진", "기념일"];
 
