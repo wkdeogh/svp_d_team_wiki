@@ -33,9 +33,12 @@ export default function HistoryPage() {
           required: true,
           options: categories.map((value) => ({ label: value, value })),
         },
-        { name: "author_name", label: "작성자", type: "text", required: true, placeholder: "기록 담당" },
       ]}
-      preparePayload={(payload) => ({ ...payload, status: "published" })}
+      preparePayload={(payload, { viewer }) => ({
+        ...payload,
+        author_name: viewer.user?.nickname ?? "닉네임 없음",
+        status: "published",
+      })}
       renderItem={(item, helpers) => (
         <article className="story-card">
           <div className="card-top">
