@@ -46,7 +46,7 @@ export default function HomePage() {
       <section className="home-hero">
         <div className="home-hero-copy">
           <p className="home-kicker">SVP D Team</p>
-          <h1 className="home-title">우리 팀의 시간을 모아두는 곳</h1>
+          <h1 className="home-title">디팀화이팅~</h1>
           <p className="home-description">결혼, 행사, 여행, 회식, 그리고 그날의 사진까지.</p>
           <div className="hero-actions">
             <Link className="cta" href="/history">
