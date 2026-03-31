@@ -25,9 +25,8 @@ export default function RootLayout({ children }) {
           <header className="topbar">
             <div>
               <Link className="brand" href="/">
-                SVP D팀 위키
+                SVP D팀 WIKI
               </Link>
-              <p className="brand-subtitle">동기들의 기록을 한 곳에</p>
             </div>
             <div className="topbar-right">
               <nav className="nav">
