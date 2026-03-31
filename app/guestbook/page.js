@@ -17,6 +17,8 @@ export default function GuestbookPage() {
       emptyMessage="아직 방명록이 없어요. 첫 글을 남겨주세요."
       reactionTargetType="guestbook"
       reportTargetType="guestbook"
+      ownerField="author_id"
+      targetType="guestbook"
       fields={[
         { name: "name", label: "이름 또는 닉네임", type: "text", required: true, placeholder: "익명 가능" },
         { name: "message", label: "내용", type: "textarea", required: true, placeholder: "짧게 한마디 남겨주세요" },
@@ -30,12 +32,19 @@ export default function GuestbookPage() {
           <h3 className="card-title">{item.title ?? ""}</h3>
           <p className="card-body">{item.message}</p>
           <div className="card-footer" style={{ marginTop: 16 }}>
-            <button className="small-btn" type="button" onClick={helpers.onReact}>
-              공감 {helpers.reactionCount > 0 ? `(${helpers.reactionCount})` : ""}
-            </button>
-            <button className="small-btn" type="button" onClick={helpers.onReport}>
-              신고
-            </button>
+            <div className="action-row">
+              <button className="small-btn" type="button" onClick={helpers.onReact}>
+                공감 {helpers.reactionCount > 0 ? `(${helpers.reactionCount})` : ""}
+              </button>
+              <button className="small-btn" type="button" onClick={helpers.onReport}>
+                신고
+              </button>
+            </div>
+            {helpers.canDelete ? (
+              <button className="danger" type="button" disabled={helpers.deleting} onClick={helpers.onDelete}>
+                {helpers.deleting ? "삭제 중..." : "삭제"}
+              </button>
+            ) : null}
           </div>
         </article>
       )}

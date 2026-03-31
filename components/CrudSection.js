@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getBrowserSupabase } from "@/lib/supabase";
-import { ensureAnonymousKey, formatDateTime, sortByDate } from "@/lib/utils";
+import { useViewer } from "@/lib/useViewer";
+import { ensureAnonymousKey, sortByDate } from "@/lib/utils";
 
 function getInitialForm(fields) {
   return fields.reduce((acc, field) => {
@@ -37,8 +38,12 @@ export function CrudSection({
   preparePayload,
   reactionTargetType,
   reportTargetType,
+  ownerField,
+  targetType,
 }) {
-  const client = useMemo(() => getBrowserSupabase(), []);
+  const fallbackClient = useMemo(() => getBrowserSupabase(), []);
+  const viewer = useViewer();
+  const client = viewer.client ?? fallbackClient;
   const [items, setItems] = useState(fallbackItems);
   const [counts, setCounts] = useState({});
   const [loading, setLoading] = useState(true);
@@ -48,6 +53,7 @@ export function CrudSection({
   const [form, setForm] = useState(getInitialForm(fields));
   const [files, setFiles] = useState({});
   const [anonKey, setAnonKey] = useState("server");
+  const [deletingId, setDeletingId] = useState("");
 
   useEffect(() => {
     setForm(getInitialForm(fields));
@@ -143,6 +149,10 @@ export function CrudSection({
         }
       }
 
+      if (ownerField && viewer.user) {
+        payload[ownerField] = viewer.user.id;
+      }
+
       if (preparePayload) {
         payload = preparePayload(payload);
       }
@@ -213,6 +223,47 @@ export function CrudSection({
     setNotice("신고가 접수됐어요.");
   }
 
+  function canDeleteItem(item) {
+    if (viewer.isAdmin) return true;
+    if (!viewer.user || !ownerField) return false;
+    return item?.[ownerField] === viewer.user.id;
+  }
+
+  async function handleDelete(item) {
+    if (!client || !targetType) return;
+
+    setDeletingId(item.id);
+    setError("");
+    setNotice("");
+
+    try {
+      if (viewer.isAdmin) {
+        const response = await fetch("/api/admin/content", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ targetType, targetId: item.id }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "삭제에 실패했습니다.");
+        }
+      } else {
+        const { error: deleteError } = await client.from(table).delete().eq("id", item.id);
+        if (deleteError) throw deleteError;
+      }
+
+      setItems((current) => current.filter((entry) => entry.id !== item.id));
+      setNotice("삭제가 완료됐어요.");
+    } catch (deleteError) {
+      setError(deleteError.message || "삭제에 실패했습니다.");
+    } finally {
+      setDeletingId("");
+    }
+  }
+
   const hasFields = fields.length > 0;
 
   return (
@@ -227,6 +278,7 @@ export function CrudSection({
         <div className="toolbar">
           <span className="tag">{loading ? "불러오는 중" : `${items.length}개 항목`}</span>
           {reactionTargetType ? <span className="tag">공감 기능</span> : null}
+          {ownerField ? <span className="tag">Google 로그인 시 내 글 삭제</span> : null}
         </div>
       </div>
 
@@ -324,7 +376,16 @@ export function CrudSection({
         ) : (
           items.map((item) =>
             renderItem ? (
-              <div key={item.id}>{renderItem(item, { onReact: () => handleReact(item), onReport: () => handleReport(item), reactionCount: counts[item.id] ?? 0 })}</div>
+              <div key={item.id}>
+                {renderItem(item, {
+                  onReact: () => handleReact(item),
+                  onReport: () => handleReport(item),
+                  onDelete: () => handleDelete(item),
+                  canDelete: canDeleteItem(item),
+                  deleting: deletingId === item.id,
+                  reactionCount: counts[item.id] ?? 0,
+                })}
+              </div>
             ) : (
               <article key={item.id} className="story-card">
                 <p className="card-body">{JSON.stringify(item)}</p>

@@ -1,5 +1,6 @@
 import "./globals.css";
 import Link from "next/link";
+import { AuthControls } from "@/components/AuthControls";
 
 export const metadata = {
   title: "SVP D팀 위키",
@@ -28,13 +29,16 @@ export default function RootLayout({ children }) {
               </Link>
               <p className="brand-subtitle">동기들의 기록을 한 곳에</p>
             </div>
-            <nav className="nav">
-              {navItems.map(([href, label]) => (
-                <Link key={href} href={href} className="nav-link">
-                  {label}
-                </Link>
-              ))}
-            </nav>
+            <div className="topbar-right">
+              <nav className="nav">
+                {navItems.map(([href, label]) => (
+                  <Link key={href} href={href} className="nav-link">
+                    {label}
+                  </Link>
+                ))}
+              </nav>
+              <AuthControls />
+            </div>
           </header>
           <main className="page-wrap">{children}</main>
           <footer className="footer">

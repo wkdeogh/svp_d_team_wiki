@@ -4,6 +4,7 @@ create table if not exists public.guestbook_entries (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   message text not null,
+  author_id uuid null,
   created_at timestamptz not null default now(),
   status text not null default 'published'
 );
@@ -26,6 +27,7 @@ create table if not exists public.photo_albums (
   title text not null,
   description text not null default '',
   cover_url text not null default '',
+  created_by uuid null,
   created_at timestamptz not null default now(),
   status text not null default 'published'
 );
@@ -49,9 +51,14 @@ create table if not exists public.members (
   bio text not null default '',
   join_story text not null default '',
   avatar_url text not null default '',
+  created_by uuid null,
   created_at timestamptz not null default now(),
   status text not null default 'published'
 );
+
+alter table public.guestbook_entries add column if not exists author_id uuid null;
+alter table public.photo_albums add column if not exists created_by uuid null;
+alter table public.members add column if not exists created_by uuid null;
 
 create table if not exists public.reactions (
   id uuid primary key default gen_random_uuid(),
@@ -79,72 +86,86 @@ alter table public.members enable row level security;
 alter table public.reactions enable row level security;
 alter table public.reports enable row level security;
 
-do $$ begin
-  create policy "public read guestbook" on public.guestbook_entries for select using (true);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "public insert guestbook" on public.guestbook_entries for insert with check (length(trim(name)) > 0 and length(trim(message)) > 0);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "authenticated update guestbook" on public.guestbook_entries for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-exception when duplicate_object then null; end $$;
+drop policy if exists "public read guestbook" on public.guestbook_entries;
+drop policy if exists "public insert guestbook" on public.guestbook_entries;
+drop policy if exists "authenticated update guestbook" on public.guestbook_entries;
+drop policy if exists "owner delete guestbook" on public.guestbook_entries;
 
-do $$ begin
-  create policy "public read timeline" on public.timeline_entries for select using (true);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "public insert timeline" on public.timeline_entries for insert with check (length(trim(title)) > 0 and length(trim(content)) > 0);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "authenticated update timeline" on public.timeline_entries for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-exception when duplicate_object then null; end $$;
+create policy "public read guestbook" on public.guestbook_entries for select using (true);
+create policy "public insert guestbook" on public.guestbook_entries for insert with check (
+  length(trim(name)) > 0 and
+  length(trim(message)) > 0 and
+  (author_id is null or auth.uid() = author_id)
+);
+create policy "authenticated update guestbook" on public.guestbook_entries for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "owner delete guestbook" on public.guestbook_entries for delete using (auth.uid() = author_id);
 
-do $$ begin
-  create policy "public read albums" on public.photo_albums for select using (true);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "public insert albums" on public.photo_albums for insert with check (length(trim(title)) > 0);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "authenticated update albums" on public.photo_albums for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-exception when duplicate_object then null; end $$;
+drop policy if exists "public read timeline" on public.timeline_entries;
+drop policy if exists "public insert timeline" on public.timeline_entries;
+drop policy if exists "authenticated update timeline" on public.timeline_entries;
+drop policy if exists "owner delete timeline" on public.timeline_entries;
 
-do $$ begin
-  create policy "public read photos" on public.photos for select using (true);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "public insert photos" on public.photos for insert with check (length(trim(title)) > 0);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "authenticated update photos" on public.photos for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-exception when duplicate_object then null; end $$;
+create policy "public read timeline" on public.timeline_entries for select using (true);
+create policy "public insert timeline" on public.timeline_entries for insert with check (
+  length(trim(title)) > 0 and
+  length(trim(content)) > 0 and
+  (author_id is null or auth.uid() = author_id)
+);
+create policy "authenticated update timeline" on public.timeline_entries for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "owner delete timeline" on public.timeline_entries for delete using (auth.uid() = author_id);
 
-do $$ begin
-  create policy "public read members" on public.members for select using (true);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "public insert members" on public.members for insert with check (length(trim(name)) > 0);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "authenticated update members" on public.members for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-exception when duplicate_object then null; end $$;
+drop policy if exists "public read albums" on public.photo_albums;
+drop policy if exists "public insert albums" on public.photo_albums;
+drop policy if exists "authenticated update albums" on public.photo_albums;
+drop policy if exists "owner delete albums" on public.photo_albums;
 
-do $$ begin
-  create policy "public read reactions" on public.reactions for select using (true);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "public insert reactions" on public.reactions for insert with check (length(trim(target_type)) > 0 and length(trim(reaction_type)) > 0 and length(trim(user_key)) > 0);
-exception when duplicate_object then null; end $$;
+create policy "public read albums" on public.photo_albums for select using (true);
+create policy "public insert albums" on public.photo_albums for insert with check (
+  length(trim(title)) > 0 and
+  (created_by is null or auth.uid() = created_by)
+);
+create policy "authenticated update albums" on public.photo_albums for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "owner delete albums" on public.photo_albums for delete using (auth.uid() = created_by);
 
-do $$ begin
-  create policy "public read reports" on public.reports for select using (true);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "public insert reports" on public.reports for insert with check (length(trim(target_type)) > 0 and length(trim(reason)) > 0);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "authenticated update reports" on public.reports for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-exception when duplicate_object then null; end $$;
+drop policy if exists "public read photos" on public.photos;
+drop policy if exists "public insert photos" on public.photos;
+drop policy if exists "authenticated update photos" on public.photos;
+drop policy if exists "owner delete photos" on public.photos;
+
+create policy "public read photos" on public.photos for select using (true);
+create policy "public insert photos" on public.photos for insert with check (
+  length(trim(title)) > 0 and
+  (created_by is null or auth.uid() = created_by)
+);
+create policy "authenticated update photos" on public.photos for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "owner delete photos" on public.photos for delete using (auth.uid() = created_by);
+
+drop policy if exists "public read members" on public.members;
+drop policy if exists "public insert members" on public.members;
+drop policy if exists "authenticated update members" on public.members;
+drop policy if exists "owner delete members" on public.members;
+
+create policy "public read members" on public.members for select using (true);
+create policy "public insert members" on public.members for insert with check (
+  length(trim(name)) > 0 and
+  (created_by is null or auth.uid() = created_by)
+);
+create policy "authenticated update members" on public.members for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "owner delete members" on public.members for delete using (auth.uid() = created_by);
+
+drop policy if exists "public read reactions" on public.reactions;
+drop policy if exists "public insert reactions" on public.reactions;
+
+create policy "public read reactions" on public.reactions for select using (true);
+create policy "public insert reactions" on public.reactions for insert with check (length(trim(target_type)) > 0 and length(trim(reaction_type)) > 0 and length(trim(user_key)) > 0);
+
+drop policy if exists "public read reports" on public.reports;
+drop policy if exists "public insert reports" on public.reports;
+drop policy if exists "authenticated update reports" on public.reports;
+
+create policy "public read reports" on public.reports for select using (true);
+create policy "public insert reports" on public.reports for insert with check (length(trim(target_type)) > 0 and length(trim(reason)) > 0);
+create policy "authenticated update reports" on public.reports for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 create index if not exists guestbook_entries_created_at_idx on public.guestbook_entries (created_at desc);
 create index if not exists timeline_entries_event_date_idx on public.timeline_entries (event_date asc);

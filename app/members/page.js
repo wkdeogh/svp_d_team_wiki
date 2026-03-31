@@ -15,6 +15,8 @@ export default function MembersPage() {
       select="*"
       submitLabel="멤버 저장"
       emptyMessage="아직 멤버 정보가 없습니다."
+      ownerField="created_by"
+      targetType="member"
       fields={[
         { name: "name", label: "이름", type: "text", required: true },
         { name: "nickname", label: "닉네임", type: "text", required: false },
@@ -24,7 +26,7 @@ export default function MembersPage() {
       ]}
       storageBucket="photos"
       preparePayload={(payload) => ({ ...payload, status: "published" })}
-      renderItem={(item) => (
+      renderItem={(item, helpers) => (
         <article className="member-card">
           <div className="card-top">
             <span className="tag">{item.nickname || "D팀"}</span>
@@ -35,6 +37,14 @@ export default function MembersPage() {
           <p className="member-bio">{item.bio}</p>
           <div className="divider" />
           <p className="member-bio">{item.join_story}</p>
+          {helpers.canDelete ? <div className="divider" /> : null}
+          {helpers.canDelete ? (
+            <div className="action-row">
+              <button className="danger" type="button" disabled={helpers.deleting} onClick={helpers.onDelete}>
+                {helpers.deleting ? "삭제 중..." : "삭제"}
+              </button>
+            </div>
+          ) : null}
         </article>
       )}
     />

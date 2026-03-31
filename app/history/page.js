@@ -20,6 +20,8 @@ export default function HistoryPage() {
       emptyMessage="아직 기록이 없어요. 첫 사건을 추가해 주세요."
       reactionTargetType="timeline"
       reportTargetType="timeline"
+      ownerField="author_id"
+      targetType="timeline"
       fields={[
         { name: "title", label: "제목", type: "text", required: true, placeholder: "예: 첫 회식" },
         { name: "content", label: "내용", type: "textarea", required: true, placeholder: "어떤 일이 있었는지 적어주세요", wide: true },
@@ -51,6 +53,11 @@ export default function HistoryPage() {
               <button className="small-btn" type="button" onClick={helpers.onReport}>
                 신고
               </button>
+              {helpers.canDelete ? (
+                <button className="danger" type="button" disabled={helpers.deleting} onClick={helpers.onDelete}>
+                  {helpers.deleting ? "삭제 중..." : "삭제"}
+                </button>
+              ) : null}
             </div>
           </div>
         </article>

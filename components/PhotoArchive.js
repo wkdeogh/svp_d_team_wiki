@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import { getBrowserSupabase } from "@/lib/supabase";
+import { useEffect, useState } from "react";
 import { fallbackAlbums, fallbackPhotos } from "@/lib/mockData";
+import { useViewer } from "@/lib/useViewer";
 import { formatDate, sortByDate } from "@/lib/utils";
 
 export function PhotoArchive() {
-  const client = useMemo(() => getBrowserSupabase(), []);
+  const viewer = useViewer();
+  const client = viewer.client;
   const [albums, setAlbums] = useState(fallbackAlbums);
   const [photos, setPhotos] = useState(fallbackPhotos);
   const [albumForm, setAlbumForm] = useState({ title: "", description: "" });
@@ -15,6 +16,13 @@ export function PhotoArchive() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [busyKey, setBusyKey] = useState("");
+
+  function canDeleteItem(item, ownerField) {
+    if (viewer.isAdmin) return true;
+    if (!viewer.user || !ownerField) return false;
+    return item?.[ownerField] === viewer.user.id;
+  }
 
   useEffect(() => {
     let active = true;
@@ -56,14 +64,20 @@ export function PhotoArchive() {
     if (!albumForm.title.trim()) return;
 
     if (!client) {
-      const album = { id: crypto.randomUUID(), ...albumForm, created_at: new Date().toISOString() };
+      const album = { id: crypto.randomUUID(), ...albumForm, created_at: new Date().toISOString(), created_by: viewer.user?.id ?? null };
       setAlbums((current) => [album, ...current]);
       setAlbumForm({ title: "", description: "" });
       setMessage("앨범이 추가됐어요.");
       return;
     }
 
-    const { error: insertError } = await client.from("photo_albums").insert([{ ...albumForm, cover_url: "" }]);
+    const { data, error: insertError } = await client.from("photo_albums").insert([
+      {
+        ...albumForm,
+        cover_url: "",
+        created_by: viewer.user?.id ?? null,
+      },
+    ]).select("*").single();
     if (insertError) {
       setError(insertError.message);
       return;
@@ -71,6 +85,9 @@ export function PhotoArchive() {
 
     setMessage("앨범이 추가됐어요.");
     setAlbumForm({ title: "", description: "" });
+    if (data) {
+      setAlbums((current) => [data, ...current]);
+    }
   }
 
   async function addPhoto(event) {
@@ -86,6 +103,7 @@ export function PhotoArchive() {
         ...photoForm,
         image_url: "",
         created_at: new Date().toISOString(),
+        created_by: viewer.user?.id ?? null,
       };
       setPhotos((current) => [photo, ...current]);
       setPhotoForm({ album_id: photoForm.album_id, title: "", caption: "", event_date: "" });
@@ -106,12 +124,13 @@ export function PhotoArchive() {
       imageUrl = client.storage.from("photos").getPublicUrl(path).data.publicUrl;
     }
 
-    const { error: insertError } = await client.from("photos").insert([
+    const { data, error: insertError } = await client.from("photos").insert([
       {
         ...photoForm,
         image_url: imageUrl,
+        created_by: viewer.user?.id ?? null,
       },
-    ]);
+    ]).select("*").single();
     if (insertError) {
       setError(insertError.message);
       return;
@@ -120,12 +139,70 @@ export function PhotoArchive() {
     setMessage("사진이 추가됐어요.");
     setPhotoForm({ album_id: photoForm.album_id, title: "", caption: "", event_date: "" });
     setFiles({ image_file: null });
+    if (data) {
+      setPhotos((current) => [data, ...current]);
+    }
+  }
+
+  async function deleteItem(targetType, targetId, table) {
+    if (!client) return;
+    setBusyKey(`${targetType}:${targetId}`);
+    setError("");
+    setMessage("");
+
+    try {
+      if (viewer.isAdmin) {
+        const response = await fetch("/api/admin/content", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ targetType, targetId }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "삭제에 실패했습니다.");
+        }
+      } else {
+        const { error: deleteError } = await client.from(table).delete().eq("id", targetId);
+        if (deleteError) throw deleteError;
+      }
+
+      if (table === "photo_albums") {
+        setAlbums((current) => current.filter((item) => item.id !== targetId));
+        setPhotos((current) => current.map((item) => (item.album_id === targetId ? { ...item, album_id: null } : item)));
+      }
+
+      if (table === "photos") {
+        setPhotos((current) => current.filter((item) => item.id !== targetId));
+      }
+
+      setMessage("삭제가 완료됐어요.");
+    } catch (deleteError) {
+      setError(deleteError.message || "삭제에 실패했습니다.");
+    } finally {
+      setBusyKey("");
+    }
   }
 
   const photosByAlbum = albums.map((album) => ({
     ...album,
     photos: photos.filter((photo) => photo.album_id === album.id),
   }));
+
+  const ungroupedPhotos = photos.filter((photo) => !photo.album_id || !albums.some((album) => album.id === photo.album_id));
+
+  if (ungroupedPhotos.length > 0) {
+    photosByAlbum.push({
+      id: "ungrouped-photos",
+      title: "기타 사진",
+      description: "앨범 없이 남아 있는 사진들",
+      created_at: null,
+      created_by: null,
+      photos: ungroupedPhotos,
+    });
+  }
 
   return (
     <section className="section-card">
@@ -134,7 +211,7 @@ export function PhotoArchive() {
           <h2 className="section-title" style={{ fontSize: 26 }}>
             사진 아카이브
           </h2>
-          <p className="section-description">앨범과 사진을 함께 보관하는 공간이다. 무료 플랜을 고려해 이미지 업로드는 가볍게 시작한다.</p>
+          <p className="section-description">앨범과 사진을 함께 보관하는 공간입니다. Google 로그인 후 올린 사진과 앨범은 직접 삭제할 수 있어요.</p>
         </div>
         <span className="tag">{loading ? "불러오는 중" : `${photos.length}장`}</span>
       </div>
@@ -200,14 +277,28 @@ export function PhotoArchive() {
             <div className="cover">{album.cover_url ? <img className="photo-image" src={album.cover_url} alt={album.title} /> : "Album"}</div>
             <h3 className="album-title">{album.title}</h3>
             <p className="album-desc">{album.description}</p>
-            <p className="helper">사진 {album.photos.length}장 · {formatDate(album.created_at)}</p>
+            <div className="card-footer" style={{ marginTop: 10 }}>
+              <p className="helper">사진 {album.photos.length}장 · {formatDate(album.created_at)}</p>
+               {album.id !== "ungrouped-photos" && canDeleteItem(album, "created_by") ? (
+                 <button className="danger" type="button" disabled={busyKey === `album:${album.id}`} onClick={() => deleteItem("album", album.id, "photo_albums")}>
+                   {busyKey === `album:${album.id}` ? "삭제 중..." : "앨범 삭제"}
+                 </button>
+               ) : null}
+            </div>
             <div className="photo-grid" style={{ marginTop: 14 }}>
               {album.photos.map((photo) => (
                 <article key={photo.id} className="photo-card">
                   <div className="cover">{photo.image_url ? <img className="photo-image" src={photo.image_url} alt={photo.title} /> : "Photo"}</div>
                   <h4 className="card-title" style={{ fontSize: 16 }}>{photo.title}</h4>
                   <p className="photo-caption">{photo.caption}</p>
-                  <p className="helper">{formatDate(photo.event_date)}</p>
+                  <div className="card-footer" style={{ marginTop: 10 }}>
+                    <p className="helper">{formatDate(photo.event_date)}</p>
+                    {canDeleteItem(photo, "created_by") ? (
+                      <button className="danger" type="button" disabled={busyKey === `photo:${photo.id}`} onClick={() => deleteItem("photo", photo.id, "photos")}>
+                        {busyKey === `photo:${photo.id}` ? "삭제 중..." : "삭제"}
+                      </button>
+                    ) : null}
+                  </div>
                 </article>
               ))}
             </div>
