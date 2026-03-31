@@ -17,7 +17,7 @@ export default function HomePage() {
     <div className="section-grid">
       <SiteHeader
         title="SVP D팀 위키"
-        description="동기들의 결혼, 행사, 회식, 여행, 방명록을 시간 순으로 남기고, 사진과 멤버 정보까지 모으는 웹앱이다. Supabase와 Vercel 무료 플랜을 고려해 가볍고 단순하게 시작한다."
+        description="동기들의 결혼, 행사, 회식, 여행, 방명록을 시간 순으로 남기고, 사진과 멤버 정보까지 모아두는 공간이다."
         primaryActionHref="/history"
         primaryActionLabel="역사 보기"
         secondaryActionHref="/guestbook"
@@ -28,9 +28,9 @@ export default function HomePage() {
         <div className="section-head">
           <div>
             <h2 className="section-title" style={{ fontSize: 26 }}>
-              바로 시작할 수 있는 기능
+              주요 메뉴
             </h2>
-            <p className="section-description">첫 출시에서 중요한 것부터 빠르게 만들고, 무료 플랜 범위 안에서 운영한다.</p>
+            <p className="section-description">방명록부터 타임라인, 사진과 멤버 소개까지 필요한 메뉴를 바로 갈 수 있어요.</p>
           </div>
         </div>
         <div className="content-grid">
@@ -44,25 +44,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section-card">
-        <div className="section-head">
-          <div>
-            <h2 className="section-title" style={{ fontSize: 26 }}>
-              구현 우선순위
-            </h2>
-            <p className="section-description">방명록과 역사 타임라인을 먼저 완성하고, 사진과 캘린더를 이어 붙이는 순서로 진행한다.</p>
-          </div>
-        </div>
-        <div className="panel">
-          <ol className="muted" style={{ margin: 0, paddingLeft: 20, lineHeight: 1.8 }}>
-            <li>Supabase 스키마와 RLS 정책</li>
-            <li>방명록 CRUD</li>
-            <li>D팀 역사 CRUD + 날짜 오름차순</li>
-            <li>사진 아카이브와 업로드</li>
-            <li>멤버 소개, 캘린더, 관리자 콘솔</li>
-          </ol>
-        </div>
-      </section>
     </div>
   );
 }

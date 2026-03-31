@@ -14,7 +14,6 @@ export function SiteHeader({ title, description, primaryActionHref, primaryActio
   return (
     <section className="hero">
       <div>
-        <span className="badge">무료 플랜 대응 MVP</span>
         <h1>{title}</h1>
         <p className="section-subtitle">{description}</p>
         <div className="hero-actions" style={{ marginTop: 18 }}>
@@ -34,7 +33,7 @@ export function SiteHeader({ title, description, primaryActionHref, primaryActio
         <div className="panel">
           <div className="summary-row">
             <span className="tag">빠른 이동</span>
-            <span className="muted">모바일도 동일</span>
+            <span className="muted">모바일에서도 편하게</span>
           </div>
           <div className="chip-row" style={{ marginTop: 10 }}>
             {quickLinks.map(([href, label]) => (
@@ -46,10 +45,10 @@ export function SiteHeader({ title, description, primaryActionHref, primaryActio
         </div>
         <div className="panel">
           <h2 className="section-title" style={{ fontSize: 18 }}>
-            이번 릴리즈
+            한눈에 보기
           </h2>
           <p className="section-subtitle" style={{ marginTop: 8 }}>
-            방명록, D팀 역사, 사진 아카이브, 멤버 소개, 기념일 캘린더, 관리 기능을 순차적으로 붙여나가는 구조로 시작한다.
+            방명록, 역사, 사진, 멤버 소개, 기념일을 한 곳에서 볼 수 있어요.
           </p>
         </div>
       </aside>

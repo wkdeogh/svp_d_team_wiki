@@ -38,7 +38,7 @@ export default function RootLayout({ children }) {
           </header>
           <main className="page-wrap">{children}</main>
           <footer className="footer">
-            <span>Supabase + Vercel 무료 플랜 기준으로 시작하는 SVP D팀 위키</span>
+            <span>SVP D팀의 기록을 모아두는 공간</span>
           </footer>
         </div>
       </body>
