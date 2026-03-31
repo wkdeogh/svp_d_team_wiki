@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
 const quickLinks = [
   ["/guestbook", "방명록"],
@@ -10,7 +11,17 @@ const quickLinks = [
   ["/calendar", "캘린더"],
 ];
 
-export function SiteHeader({ title, description, primaryActionHref, primaryActionLabel, secondaryActionHref, secondaryActionLabel }) {
+export function SiteHeader({
+  title,
+  description,
+  primaryActionHref,
+  primaryActionLabel,
+  secondaryActionHref,
+  secondaryActionLabel,
+  imageSrc,
+  imageAlt,
+  imageCaption,
+}) {
   return (
     <section className="hero">
       <div>
@@ -30,6 +41,14 @@ export function SiteHeader({ title, description, primaryActionHref, primaryActio
         </div>
       </div>
       <aside className="hero-aside">
+        {imageSrc ? (
+          <div className="panel hero-image-card">
+            <div className="hero-image-frame">
+              <Image className="hero-image" src={imageSrc} alt={imageAlt ?? title} priority />
+            </div>
+            {imageCaption ? <p className="hero-image-caption">{imageCaption}</p> : null}
+          </div>
+        ) : null}
         <div className="panel">
           <div className="summary-row">
             <span className="tag">빠른 이동</span>

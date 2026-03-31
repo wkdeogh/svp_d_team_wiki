@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
+import homeImage from "../home_image.png";
 
 const highlights = [
   ["/guestbook", "방명록", "누구나 짧게 기록하는 자유 공간"],
@@ -22,6 +23,9 @@ export default function HomePage() {
         primaryActionLabel="역사 보기"
         secondaryActionHref="/guestbook"
         secondaryActionLabel="방명록 남기기"
+        imageSrc={homeImage}
+        imageAlt="SVP D팀 홈 이미지"
+        imageCaption="우리 팀의 기록을 한눈에 볼 수 있는 공간"
       />
 
       <section className="section-card">
