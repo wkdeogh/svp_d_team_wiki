@@ -276,8 +276,6 @@ export function CrudSection({
         </div>
         <div className="toolbar">
           <span className="tag">{loading ? "불러오는 중" : `${items.length}개 항목`}</span>
-          {reactionTargetType ? <span className="tag">공감 기능</span> : null}
-          {ownerField ? <span className="tag">로그인 시 내 글 삭제</span> : null}
         </div>
       </div>
 

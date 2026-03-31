@@ -216,7 +216,7 @@ export function PhotoArchive() {
           <h2 className="section-title" style={{ fontSize: 26 }}>
             사진 아카이브
           </h2>
-          <p className="section-description">앨범과 사진을 함께 보관하는 공간입니다. 로그인 후 올린 사진과 앨범은 직접 삭제할 수 있어요.</p>
+          <p className="section-description">앨범과 사진을 함께 보관합니다.</p>
         </div>
         <span className="tag">{loading ? "불러오는 중" : `${photos.length}장`}</span>
       </div>

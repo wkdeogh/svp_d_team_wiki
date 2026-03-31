@@ -62,8 +62,6 @@ export function AuthControls() {
 
   return (
     <div className="auth-controls">
-      {loading ? <span className="auth-meta">로그인 확인 중...</span> : null}
-
       {!loading && !user ? (
         <button className="secondary auth-button" type="button" onClick={() => setIsModalOpen(true)}>
           로그인
@@ -76,7 +74,6 @@ export function AuthControls() {
             <div className="auth-avatar auth-avatar-fallback">{displayName.slice(0, 1)}</div>
             <div className="auth-user-copy">
               <span className="auth-user-name">{displayName}</span>
-              <span className="auth-meta">자동 로그인 유지</span>
             </div>
           </div>
           <button className="secondary auth-button" type="button" onClick={signOut} disabled={submitting}>
@@ -119,9 +116,8 @@ export function AuthControls() {
                 }}
               />
               <button className="primary auth-modal-submit" type="button" onClick={signIn} disabled={submitting || !nickname.trim() || !password.trim()}>
-                {submitting ? "확인 중..." : "로그인 / 자동 가입"}
+                {submitting ? "확인 중..." : "로그인"}
               </button>
-              <p className="auth-meta">처음 입력한 닉네임이면 자동으로 계정이 만들어져요.</p>
               {error ? <span className="auth-error">{error}</span> : null}
             </div>
           </div>
