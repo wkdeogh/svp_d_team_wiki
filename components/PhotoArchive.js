@@ -279,7 +279,11 @@ export function PhotoArchive() {
       <div className="album-list">
         {photosByAlbum.map((album) => (
           <article key={album.id} className="album-card">
-            <div className="cover">{album.cover_url ? <img className="photo-image" src={album.cover_url} alt={album.title} /> : "Album"}</div>
+            {album.cover_url ? (
+              <div className="cover">
+                <img className="photo-image" src={album.cover_url} alt={album.title} />
+              </div>
+            ) : null}
             <h3 className="album-title">{album.title}</h3>
             <p className="album-desc">{album.description}</p>
             <div className="card-footer" style={{ marginTop: 10 }}>
