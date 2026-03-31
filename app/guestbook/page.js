@@ -20,9 +20,13 @@ export default function GuestbookPage() {
       ownerField="author_id"
       targetType="guestbook"
       fields={[
-        { name: "name", label: "이름 또는 닉네임", type: "text", required: true, placeholder: "익명 가능" },
         { name: "message", label: "내용", type: "textarea", required: true, placeholder: "짧게 한마디 남겨주세요" },
       ]}
+      preparePayload={(payload, { viewer }) => ({
+        ...payload,
+        name: viewer.user?.nickname ?? "닉네임 없음",
+        status: "published",
+      })}
       renderItem={(item, helpers) => (
         <article className="story-card">
           <div className="card-top">

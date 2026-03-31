@@ -187,3 +187,13 @@ create index if not exists reactions_target_idx on public.reactions (target_type
 create index if not exists reports_target_idx on public.reports (target_type, target_id);
 create unique index if not exists user_accounts_nickname_idx on public.user_accounts (nickname);
 create unique index if not exists user_sessions_token_hash_idx on public.user_sessions (token_hash);
+
+drop policy if exists "public read photos storage" on storage.objects;
+drop policy if exists "public insert photos storage" on storage.objects;
+drop policy if exists "public update photos storage" on storage.objects;
+drop policy if exists "public delete photos storage" on storage.objects;
+
+create policy "public read photos storage" on storage.objects for select using (bucket_id = 'photos');
+create policy "public insert photos storage" on storage.objects for insert with check (bucket_id = 'photos');
+create policy "public update photos storage" on storage.objects for update using (bucket_id = 'photos') with check (bucket_id = 'photos');
+create policy "public delete photos storage" on storage.objects for delete using (bucket_id = 'photos');

@@ -158,7 +158,7 @@ export function CrudSection({
       }
 
       if (preparePayload) {
-        payload = preparePayload(payload);
+        payload = preparePayload(payload, { viewer });
       }
 
       if (!client) {

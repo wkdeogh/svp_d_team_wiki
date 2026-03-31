@@ -17,6 +17,7 @@ ADMIN_PASSWORD=
 - `supabase/schema.sql`을 실행해서 테이블과 정책을 만든다.
 - Storage 버킷 이름은 `photos`를 사용한다.
 - 기존 프로젝트라면 이번 변경 후 `supabase/schema.sql`을 다시 실행해서 새 컬럼과 delete policy를 반영한다.
+- 사진 업로드에서 `new row violates row-level security policy`가 뜨면 `storage.objects` 정책이 아직 없는 상태라서, `supabase/schema.sql`을 다시 실행해야 한다.
 
 ## 일반 로그인
 - 상단에서 `닉네임 + 비밀번호`를 입력하면 로그인된다.
